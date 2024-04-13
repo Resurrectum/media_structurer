@@ -33,6 +33,8 @@ def get_exif_date_and_device(image_path):
             if exif_data is not None:
                 date_time = exif_data.get(36867)  # DateTimeOriginal tag
                 if date_time is not None:
+                    # Remove null characters from the datetime string
+                    date_time = date_time.replace('\x00', '')
                     date = datetime.strptime(date_time, '%Y:%m:%d %H:%M:%S')
                 device = exif_data.get(272)  # Model tag
                 if device is not None:
@@ -89,8 +91,8 @@ def process_file(file, root, source_dir, dest_dir_pictures, no_exif_dir_pictures
             handle_file_with_exif(source_path, date, device, dest_dir_pictures)
         else:
             handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pictures, dest_dir_pictures)
-    except Exception as e:
-        logger.error('Failed to copy file %s due to error: %s using filename.', source_path, e)
+    except Exception:
+        logger.error('File %s has no exif and no date could be guessed from filename. File copied to no_exif folder %s', source_path, no_exif_dir_pictures)
 
 
 def handle_file_with_exif(source_path, date, device, dest_dir_pictures):
@@ -125,7 +127,9 @@ def extract_date_from_filename(file):
     if match:
         date_str = match.group().replace('.', ':') # replace dots with colons, for parser compatibility
         try:
-            return parse(date_str, fuzzy = True)  # pulls non date info into datetime MUST DEBUG
+            date = parse(date_str, fuzzy = True)  # pulls non date info into datetime MUST DEBUG
+            logger.info('Parsed date %s from filename %s.', date_str, file)
+            return date
         except ValueError:
             logger.error('Unable to parse date from filename %s', file)
     return None
@@ -138,7 +142,7 @@ def copy_file_with_new_exif(source_path, dest_path, date, file):
         base, ext = os.path.splitext(dest_path)
         suffix += 1
         dest_path = f"{base}_{suffix}{ext}"
-        logger.error('Unable to parse date from filename %s', file)
+        logger.warning('A file named %s already exists in %s. The filename will get a suffix.', file, dest_path)
     
     shutil.copy2(source_path, dest_path)
     logger.info('Copied file %s to %s.', source_path, dest_path)

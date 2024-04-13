@@ -1,7 +1,6 @@
 import os
 from imagetools import process_file
 from config import *
-from logger import logger
 
 # Set up logging
 # logging.basicConfig(filename='logfile.log', level=logging.INFO, format='%(asctime)s %(message)s')
