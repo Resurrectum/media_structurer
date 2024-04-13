@@ -2,12 +2,12 @@
 import os
 import re
 import shutil
-import logging
 from datetime import datetime
 from PIL import Image
 import exifread
 import piexif
 from dateutil.parser import parse
+from logger import logger
 
 def get_exif_date_and_device(image_path):
     '''
@@ -39,7 +39,7 @@ def get_exif_date_and_device(image_path):
                     device = device.strip().replace(' ', '_')
         return date, device
     except Exception as e:
-        logging.exception('Failed to get EXIF data from file %s due to error: %s', image_path, e)
+        logger.warning('Failed to get EXIF data from file %s due to error: %s', image_path, e)
     return None, None
 
 
@@ -90,14 +90,14 @@ def process_file(file, root, source_dir, dest_dir_pictures, no_exif_dir_pictures
         else:
             handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pictures, dest_dir_pictures)
     except Exception as e:
-        logging.error(f'Failed to copy file {source_path} due to error: {e} using filename.')
+        logger.error('Failed to copy file %s due to error: %s using filename.', source_path, e)
 
 
 def handle_file_with_exif(source_path, date, device, dest_dir_pictures):
     dest_dir = create_directory_structure(dest_dir_pictures, date)
     dest_path = os.path.join(dest_dir, rename_image(source_path, date, device))
     shutil.copy2(source_path, dest_path)
-    logging.info(f'Copied file {source_path} to {dest_path}.')
+    logger.info('Copied file %s to %s.', source_path, dest_path)
 
 
 def handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pictures, dest_dir_pictures):
@@ -105,7 +105,7 @@ def handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pi
     no_exif_dir = os.path.join(no_exif_dir_pictures, relative_path)
     os.makedirs(no_exif_dir, exist_ok=True)
     dest_path = os.path.join(no_exif_dir, file)
-    logging.warning(f'No EXIF data found in file {source_path}, trying to extract date from filename.')
+    logger.warning('No EXIF data found in file %s, trying to extract date from filename.', source_path)
 
     date = extract_date_from_filename(file)
     if date is not None and date <= datetime.now():
@@ -113,7 +113,7 @@ def handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pi
         # replace the no_exif-dest_path with the new dest_path
         dest_path = os.path.join(dest_dir, rename_image(source_path, date, device=None))
 
-    copy_file_with_new_exif(source_path, dest_path, date)
+    copy_file_with_new_exif(source_path, dest_path, date, file)
 
 
 def extract_date_from_filename(file):
@@ -127,20 +127,21 @@ def extract_date_from_filename(file):
         try:
             return parse(date_str, fuzzy = True)  # pulls non date info into datetime MUST DEBUG
         except ValueError:
-            logging.error(f'Unable to parse date from filename {file}')
+            logger.error('Unable to parse date from filename %s', file)
     return None
 
 
-def copy_file_with_new_exif(source_path, dest_path, date):
+def copy_file_with_new_exif(source_path, dest_path, date, file):
     # Add suffix if a file already exists in the destination
     suffix = 0
     while os.path.exists(dest_path):
         base, ext = os.path.splitext(dest_path)
         suffix += 1
         dest_path = f"{base}_{suffix}{ext}"
+        logger.error('Unable to parse date from filename %s', file)
     
     shutil.copy2(source_path, dest_path)
-    logging.info(f'Copied file {source_path} to {dest_path}.')
+    logger.info('Copied file %s to %s.', source_path, dest_path)
     # Load the EXIF data from the copied file
     exif_dict = piexif.load(dest_path)
     # Convert the date to the format expected by EXIF
