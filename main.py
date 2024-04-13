@@ -6,8 +6,6 @@ from config import *
 # Set up logging
 logging.basicConfig(filename='logfile.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
-os.makedirs(config['no_exif_dir_pictures'], exist_ok=True)
-os.makedirs(['no_exif_dir_pictures_raw'], exist_ok=True)
 
 def main():
     for source_dir in source_dirs:

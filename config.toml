@@ -1,7 +1,9 @@
-'''TOML configuration'''
+# TOML configuration
 
 source_dirs = ["/home/rafael/Pictures", "/home/rafael/Downloads/datalake"]
 dest_dir_pictures = "/home/rafael/Pictures2/Pictures"
 dest_dir_pictures_raw = "/home/rafael/Pictures2/Pictures_RAW"
-no_exif_dir_pictures = os.path.join(dest_dir_pictures, "no_exif")
-no_exif_dir_pictures_raw = os.path.join(dest_dir_pictures_raw, "no_exif")
+
+# child directory in both destination directory pictures that 
+no_exif_directories_both = 'no_exif'
+
