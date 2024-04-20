@@ -6,13 +6,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Create handlers
-info_handler = logging.FileHandler('info.log')
+info_handler = logging.FileHandler('./logs/info.log')
 info_handler.setLevel(logging.INFO)
 
-warning_handler = logging.FileHandler('warning.log')
+warning_handler = logging.FileHandler('./logs/warning.log')
 warning_handler.setLevel(logging.WARNING)
 
-error_handler = logging.FileHandler('error.log')
+error_handler = logging.FileHandler('./logs/error.log')
 error_handler.setLevel(logging.ERROR)
 
 # Create formatters and add them to the handlers

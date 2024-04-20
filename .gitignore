@@ -3,6 +3,7 @@
 
 ### Logs ###
 logfile.log
+logs/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

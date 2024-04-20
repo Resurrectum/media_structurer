@@ -1,9 +1,20 @@
 # TOML configuration
 
-source_dirs = ["/home/rafael/Pictures", "/home/rafael/Downloads/datalake"]
-dest_dir_pictures = "/home/rafael/Pictures2/Pictures"
-dest_dir_pictures_raw = "/home/rafael/Pictures2/Pictures_RAW"
+# if true, the script will copy the files, if false it will move them
+careful = true
 
-# child directory in both destination directory pictures that 
-no_exif_directories_both = 'no_exif'
+# more than one source directory for media files can be specified
+source_dirs = ["/home/rafael/Downloads/datalake"]
 
+dest_dir_pictures = "/home/rafael/Pictures3/Pictures"
+dest_dir_pictures_raw = "/home/rafael/Pictures3/Pictures_RAW"
+dest_dir_videos = "/home/rafael/Videos3/Videos"
+dest_non_media = "/home/rafael/fromLake_NonMedia"
+
+# child directory in all destination directories for media without exif data 
+no_exif_directories_all = 'no_exif'
+
+[FileExtensions]
+image_extensions = [".png", ".jpg", ".jpeg", ".tiff"]
+raw_extensions = [".raw", ".cr2", ".nef", ".arw", ".dng"]
+video_extensions = [".mp4", ".avi", ".mov", ".mkv", ".mts", "lrf"]
