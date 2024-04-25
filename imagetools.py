@@ -1,6 +1,7 @@
 '''Image tools for the image processing script.'''
 import os
 import re
+import string
 import shutil
 from datetime import datetime
 from PIL import Image
@@ -39,7 +40,10 @@ def get_exif_date_and_device(file_path):
                         date_string = track.encoded_date or track.recorded_date
                         if date_string:
                             date_string = date_string.replace('UTC ', '') # remove 'UTC ' from the date string if it exists
-                        date = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S')
+                        try:
+                            date = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            date = parse(date_string)
                         device = None
             except Exception as e:
                 logger.error('Failed to get creation date from video file %s due to error: %s', file_path, e)
@@ -57,24 +61,15 @@ def get_exif_date_and_device(file_path):
                 device = exif_data.get(272)  # Model tag
                 if device is not None:
                     device = device.strip().replace(' ', '_')
+                    # Remove non-printable characters from the device model
+                    device = ''.join(filter(lambda x: x in string.printable, device))
+                    # Replace non-alphanumeric characters with underscores
+                    device = re.sub(r'\W+', '_', device)
         return date, device
     except Exception as e:
         logger.warning('Failed to get EXIF data from file %s due to error: %s', file_path, e)
     return None, None
 
-
-def copy_srt_file(video_file_path, destination_dir):
-    '''if there are subtitle files for a video, rename and copy/move them to the destination directory'''
-    base, _ = os.path.splitext(video_file_path)
-    srt_file_path = base + '.srt'
-    if os.path.exists(srt_file_path):
-        destination_path = os.path.join(destination_dir, os.path.basename(srt_file_path))
-        if config.careful:
-            shutil.copy2(srt_file_path, destination_path)
-            logger.info('Copied subtitle file %s to %s.', srt_file_path, destination_path)
-        else:
-            shutil.move(srt_file_path, destination_path)
-            logger.info('Moved subtitle file %s to %s.', srt_file_path, destination_path)
 
 
 def create_directory_structure(base_dir, date):
@@ -127,6 +122,24 @@ def process_file(file, root, source_dir, dest_dir_pictures, no_exif_dir_pictures
         logger.error('File %s has no exif and no date could be guessed from filename. File copied to no_exif folder %s', source_path, no_exif_dir_pictures)
 
 
+def copy_srt_file(video_file_path, destination_dir):
+    '''if there are subtitle files for a video, rename and copy/move them to the destination directory'''
+    base, _ = os.path.splitext(os.path.basename(video_file_path))
+    srt_file_name = base.lower() + '.srt'
+    dir_files = os.listdir(os.path.dirname(video_file_path))
+    for file in dir_files:
+        if file.lower() == srt_file_name:
+            srt_file_path = os.path.join(os.path.dirname(video_file_path), file)
+            destination_path = os.path.join(destination_dir, os.path.basename(srt_file_path))
+            if config.careful:
+                shutil.copy2(srt_file_path, destination_path)
+                logger.info('Copied subtitle file %s to %s.', srt_file_path, destination_path)
+            else:
+                shutil.move(srt_file_path, destination_path)
+                logger.info('Moved subtitle file %s to %s.', srt_file_path, destination_path)
+
+
+
 def handle_file_with_exif(source_path, date, device, dest_dir_pictures):
     dest_dir = create_directory_structure(dest_dir_pictures, date)
     dest_path = os.path.join(dest_dir, rename_image(source_path, date, device))
@@ -136,7 +149,8 @@ def handle_file_with_exif(source_path, date, device, dest_dir_pictures):
     else: 
         shutil.move(source_path, dest_path)
         logger.info('Moved file %s to %s.', source_path, dest_path)
-    copy_srt_file(source_path, dest_dir)
+    if source_path.lower().endswith(".lrf"):
+        copy_srt_file(source_path, dest_dir)
 
 
 def handle_file_without_exif(source_path, file, root, source_dir, no_exif_dir_pictures, dest_dir_pictures):
