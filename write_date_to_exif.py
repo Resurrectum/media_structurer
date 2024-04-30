@@ -1,6 +1,7 @@
 import os
 import piexif
 from datetime import datetime
+from config import image_extensions
 
 def write_datetime_to_exif(image_path, date):
     # Convert the date to the format required by EXIF
@@ -19,11 +20,10 @@ def write_datetime_to_exif(image_path, date):
 
 
 
-
 def main(directory):
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if file.lower().endswith('.jpg'):
+            if file.lower().endswith(tuple(image_extensions)):
                 image_path = os.path.join(root, file)
                 date_string = input(f"Enter a date for {image_path}: ")
                 date = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S')
