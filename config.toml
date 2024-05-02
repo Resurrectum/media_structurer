@@ -1,7 +1,7 @@
 # TOML configuration
 
 # if true, the script will copy the files, if false it will move them
-careful = true
+careful = false
 
 # more than one source directory for media files can be specified
 source_dirs = ["/home/rafael/Downloads/datalake"]
