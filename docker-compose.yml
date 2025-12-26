@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  media-structurer:
+    image: media-structurer:latest
+    container_name: media-structurer
+    volumes:
+      # Mount the config file from tricc
+      - ./config.tricc.toml:/app/config.toml:ro
+
+      # Mount source directory (datalake)
+      - /path/to/datalake:/data/datalake:rw
+
+      # Mount destination directories
+      - /path/to/Pictures:/data/Pictures:rw
+      - /path/to/Pictures/RAW:/data/Pictures/RAW:rw
+      - /path/to/Videos:/data/Videos:rw
+      - /path/to/fromLake_NonMedia:/data/fromLake_NonMedia:rw
+
+      # Mount logs directory to persist logs on host
+      - ./logs:/app/logs:rw
+
+    restart: "no"
+
+    # Optional: Set user to avoid permission issues
+    # Uncomment and adjust UID:GID to match your user on tricc
+    # user: "1000:1000"
+
+# To run:
+# docker-compose up
+#
+# To run in background:
+# docker-compose up -d
+#
+# To view logs:
+# docker-compose logs -f

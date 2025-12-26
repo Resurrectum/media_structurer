@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (local config should not be in image)
+config.toml
+
+# Deployment files
+deploy.sh
+DOCKER_DEPLOYMENT.md
+docker-compose.yml
+
+# Documentation
+README.md
+CLAUDE.md
+DUPLICATE_DETECTION.md
+
+# Test files
+tests/
+
+# Streamlit dashboard (not needed in container)
+exif_dashboard_streamlit.py
+
+# Manual tools (not needed in container)
+write_date_to_exif.py
+
+# Duplicate detection utilities (standalone scripts)
+calculate_hashes.py
+duplicate_detection_db.py
+find_duplicates.py
+hash_calculator.py

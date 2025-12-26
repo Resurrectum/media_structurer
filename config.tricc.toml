@@ -1,0 +1,22 @@
+# TOML configuration for tricc deployment
+# This file should be customized with actual paths on tricc
+
+# if true, the script will copy the files, if false it will move them
+careful = false
+
+# Source directory - adjust to actual datalake path on tricc
+source_dirs = ["/data/datalake"]
+
+# Destination directories - these map to Docker volumes
+dest_dir_pictures = "/data/Pictures"
+dest_dir_pictures_raw = "/data/Pictures/RAW"
+dest_dir_videos = "/data/Videos"
+dest_non_media = "/data/fromLake_NonMedia"
+
+# child directory in all destination directories for media without exif data
+no_exif_directories_all = 'no_exif'
+
+[FileExtensions]
+image_extensions = [".png", ".jpg", ".jpeg", ".tiff"]
+raw_extensions = [".raw", ".cr2", ".nef", ".arw", ".dng"]
+video_extensions = [".mp4", ".mpeg", ".avi", ".mov", ".mkv", ".mts", ".lrf"]

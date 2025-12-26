@@ -1,0 +1,23 @@
+[project]
+name = "media-structurer"
+version = "1.0.0"
+description = "Organize photos, RAW images, and videos into a structured directory hierarchy based on EXIF metadata"
+requires-python = ">=3.10"
+dependencies = [
+    "pillow>=10.0.0",
+    "exifread>=3.0.0",
+    "piexif>=1.1.3",
+    "pymediainfo>=6.0.0",
+    "toml>=0.10.2",
+    "python-dateutil>=2.8.2",
+]
+
+[project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.28.0",
+    "numpy>=1.24.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
