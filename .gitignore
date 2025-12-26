@@ -178,3 +178,8 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+### Media Structurer ###
+# Duplicate detection database
+media_hashes.db
+media_hashes.db-journal

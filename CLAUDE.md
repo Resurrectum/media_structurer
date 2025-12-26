@@ -75,6 +75,22 @@ streamlit run exif_dashboard_streamlit.py
 python write_date_to_exif.py
 ```
 
+**Duplicate detection (calculate hashes):**
+```bash
+python calculate_hashes.py           # Initial run or incremental update
+python calculate_hashes.py --cleanup # Remove stale entries for deleted files
+python calculate_hashes.py --rebuild # Clear DB and recalculate all hashes
+```
+
+**Duplicate detection (find duplicates):**
+```bash
+python find_duplicates.py           # Display duplicate groups
+python find_duplicates.py -v        # Show full file paths
+python find_duplicates.py -o out.csv # Export to CSV
+```
+
+See `DUPLICATE_DETECTION.md` for complete documentation.
+
 ## Configuration
 
 All configuration is managed through `config.toml`:
@@ -132,6 +148,27 @@ The `config.py` module loads and processes this TOML configuration, creating der
 **`exif_dashboard_streamlit.py`**:
 - Web UI for batch EXIF date updates
 - Displays images and allows setting date/time via sidebar controls
+
+**Duplicate Detection Module** (`duplicate_detection_db.py`, `hash_calculator.py`, `calculate_hashes.py`, `find_duplicates.py`):
+- **`duplicate_detection_db.py`**: SQLite database manager for storing perceptual hashes
+  - Schema includes file path, hash, size, dimensions, modification time
+  - Indexed on perceptual_hash for fast duplicate lookups
+  - Methods for cleanup (removing stale entries) and rebuild (clearing database)
+- **`hash_calculator.py`**: Parallel processing for calculating perceptual hashes
+  - `calculate_image_phash()`: Uses imagehash library with 16x16 hash size (256-bit)
+  - `calculate_video_phash()`: Extracts keyframe at 10% using ffmpeg, then hashes it
+  - `process_media_file()`: Worker function for parallel pool processing
+- **`calculate_hashes.py`**: Main script for scanning and hashing media library
+  - Uses multiprocessing.Pool with all CPU cores
+  - Incremental updates (only processes new/modified files)
+  - Flags: `--cleanup` (remove stale entries), `--rebuild` (clear and recalculate all)
+- **`find_duplicates.py`**: Query and report duplicates from database
+  - Groups files by perceptual hash, calculates wasted space
+  - Export to CSV, verbose mode for full paths
+
+**How it differs from collision detection:**
+- Collision detection (in `imagetools.py`) uses MD5/SHA256 hashes of entire file content for exact binary matches during the organizing process
+- Duplicate detection uses perceptual hashes of visual content to find visually identical files regardless of EXIF differences, compression, or minor edits
 
 ## Important Implementation Notes
 
@@ -202,3 +239,8 @@ Core libraries used:
 - `python-dateutil`: Flexible date parsing
 - `streamlit`: Dashboard UI (optional)
 - `numpy`: Dashboard support (optional)
+
+Duplicate detection libraries:
+- `imagehash`: Perceptual hashing for images
+- `tqdm`: Progress bars for long-running operations
+- `ffmpeg` / `ffprobe`: Video frame extraction and metadata (system dependency, not Python package)

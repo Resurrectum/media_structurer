@@ -6,9 +6,9 @@ careful = false
 # more than one source directory for media files can be specified
 source_dirs = ["/home/rafael/Downloads/datalake"]
 
-dest_dir_pictures = "/home/rafael/Pictures2/Pictures"
-dest_dir_pictures_raw = "/home/rafael/Pictures2/Pictures_RAW"
-dest_dir_videos = "/home/rafael/Videos2/Videos"
+dest_dir_pictures = "/home/rafael/Pictures"
+dest_dir_pictures_raw = "/home/rafael/Pictures/RAW"
+dest_dir_videos = "/home/rafael/Videos"
 dest_non_media = "/home/rafael/fromLake_NonMedia"
 
 # child directory in all destination directories for media without exif data 
