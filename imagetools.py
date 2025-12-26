@@ -9,9 +9,44 @@ import exifread
 import piexif
 from dateutil.parser import parse
 from pymediainfo import MediaInfo
-from logger import logger
+from logger import logger, collision_logger
 import config
+import hashlib
 
+
+def calculate_file_hash(file_path, algorithm='md5'):
+    '''
+    @brief Calculate hash of a file using specified algorithm.
+    @param file_path Path to the file to hash
+    @param algorithm Hash algorithm to use ('md5' or 'sha256')
+    @return Hexadecimal hash string
+    '''
+    hash_func = hashlib.md5() if algorithm == 'md5' else hashlib.sha256()
+
+    with open(file_path, 'rb') as f:
+        # Read in chunks to handle large files efficiently
+        for chunk in iter(lambda: f.read(8192), b''):
+            hash_func.update(chunk)
+
+    return hash_func.hexdigest()
+
+
+def are_files_identical(file_path1, file_path2):
+    '''
+    @brief Check if two files are identical by comparing their hashes.
+    @param file_path1 Path to first file
+    @param file_path2 Path to second file
+    @return True if files are identical, False otherwise
+    '''
+    # Quick check: compare file sizes first (optimization)
+    if os.path.getsize(file_path1) != os.path.getsize(file_path2):
+        return False
+
+    # If sizes match, compare hashes
+    hash1 = calculate_file_hash(file_path1)
+    hash2 = calculate_file_hash(file_path2)
+
+    return hash1 == hash2
 
 
 def get_exif_date_and_device(file_path):
@@ -140,13 +175,65 @@ def copy_srt_file(video_file_path, destination_dir):
 
 
 
+def resolve_destination_path(source_path, dest_path):
+    '''
+    @brief Resolve destination path by handling collisions with hash-based duplicate detection.
+    @param source_path Path to source file
+    @param dest_path Intended destination path
+    @return Tuple of (final_dest_path, is_duplicate) where is_duplicate indicates if file should be skipped
+    '''
+    if not os.path.exists(dest_path):
+        return dest_path, False
+
+    # Collision detected - check if it's a duplicate
+    if are_files_identical(source_path, dest_path):
+        # Log to general logger
+        logger.info('Duplicate file detected, skipping: %s', source_path)
+
+        # Log detailed information to collision log
+        collision_logger.info(
+            'DUPLICATE_SKIPPED | Source: %s | Existing: %s | Decision: File skipped (identical hash)',
+            source_path,
+            dest_path
+        )
+        return dest_path, True
+
+    # Not a duplicate - add numeric suffix
+    base, ext = os.path.splitext(dest_path)
+    original_dest = dest_path
+    suffix = 1
+    while os.path.exists(dest_path):
+        dest_path = f"{base}_{suffix}{ext}"
+        suffix += 1
+
+    # Log to general logger
+    logger.warning('Name collision resolved with suffix: %s', dest_path)
+
+    # Log detailed information to collision log
+    collision_logger.warning(
+        'COLLISION_RESOLVED | Source: %s | Original destination: %s | New destination: %s | Decision: Added suffix _%d (different hash)',
+        source_path,
+        original_dest,
+        dest_path,
+        suffix - 1
+    )
+    return dest_path, False
+
+
 def handle_file_with_exif(source_path, date, device, dest_dir_pictures):
     dest_dir = create_directory_structure(dest_dir_pictures, date)
     dest_path = os.path.join(dest_dir, rename_image(source_path, date, device))
+
+    # Resolve collisions and check for duplicates
+    dest_path, is_duplicate = resolve_destination_path(source_path, dest_path)
+
+    if is_duplicate:
+        return  # Skip duplicate file
+
     if config.careful:
         shutil.copy2(source_path, dest_path)
         logger.info('Copied file %s to %s.', source_path, dest_path)
-    else: 
+    else:
         shutil.move(source_path, dest_path)
         logger.info('Moved file %s to %s.', source_path, dest_path)
     if source_path.lower().endswith(".lrf"):
@@ -187,19 +274,19 @@ def extract_date_from_filename(file):
 
 
 def copy_file_with_new_exif(source_path, dest_path, date, file):
-    # Add suffix if a file already exists in the destination
-    suffix = 0
-    while os.path.exists(dest_path):
-        base, ext = os.path.splitext(dest_path)
-        suffix += 1
-        dest_path = f"{base}_{suffix}{ext}"
-        logger.warning('A file named %s already exists in %s. The filename will get a suffix.', file, dest_path)
+    # Resolve collisions and check for duplicates
+    dest_path, is_duplicate = resolve_destination_path(source_path, dest_path)
+
+    if is_duplicate:
+        return  # Skip duplicate file
+
     if config.careful:
         shutil.copy2(source_path, dest_path)
         logger.info('Copied file %s to %s.', source_path, dest_path)
-    else: 
+    else:
         shutil.move(source_path, dest_path)
         logger.info('Moved file %s to %s.', source_path, dest_path)
+
     # Load the EXIF data from the copied file
     exif_dict = piexif.load(dest_path)
     # Convert the date to the format expected by EXIF
@@ -214,20 +301,21 @@ def copy_file_with_new_exif(source_path, dest_path, date, file):
     piexif.insert(exif_bytes, dest_path)
 
 def process_file_non_media(file, root, source_dir, non_media_dir):
+    source_path = os.path.join(root, file)
     destination = os.path.join(non_media_dir, file)
-    if os.path.exists(destination):
-        base, extension = os.path.splitext(file)
-        i = 1
-        while os.path.exists(destination):
-            destination = os.path.join(non_media_dir, f"{base}_{i}{extension}")
-            i += 1
+
+    # Resolve collisions and check for duplicates
+    destination, is_duplicate = resolve_destination_path(source_path, destination)
+
+    if is_duplicate:
+        return  # Skip duplicate file
+
+    destination_dir = os.path.dirname(destination)
+    os.makedirs(destination_dir, exist_ok=True)
+
     if config.careful:
-        destination_dir = os.path.dirname(destination)
-        os.makedirs(destination_dir, exist_ok=True)
-        shutil.copy2(os.path.join(root, file), destination)
+        shutil.copy2(source_path, destination)
         logger.info('Copied non-media file %s to %s.', file, destination)
     else:
-        destination_dir = os.path.dirname(destination)
-        os.makedirs(destination_dir, exist_ok=True)
-        shutil.move(os.path.join(root, file), destination)
+        shutil.move(source_path, destination)
         logger.info('Moved non-media file %s to %s.', file, destination)

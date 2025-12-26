@@ -29,3 +29,22 @@ error_handler.setFormatter(error_format)
 logger.addHandler(info_handler)
 logger.addHandler(warning_handler)
 logger.addHandler(error_handler)
+
+
+# Create a separate logger for collision detection events
+collision_logger = logging.getLogger('collision_detection')
+collision_logger.setLevel(logging.INFO)
+
+# Create dedicated handler for collision events
+collision_handler = logging.FileHandler('./logs/collision.log')
+collision_handler.setLevel(logging.INFO)
+
+# Create detailed formatter for collision events
+collision_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+collision_handler.setFormatter(collision_format)
+
+# Add handler to collision logger
+collision_logger.addHandler(collision_handler)
+
+# Prevent collision logs from propagating to root logger
+collision_logger.propagate = False

@@ -105,6 +105,9 @@ The `config.py` module loads and processes this TOML configuration, creating der
 ### Key Components
 
 **`imagetools.py`** (core logic):
+- `calculate_file_hash()`: Computes MD5/SHA256 hash of files in chunks for memory efficiency
+- `are_files_identical()`: Compares files using size check and hash comparison
+- `resolve_destination_path()`: Centralized collision handling with hash-based duplicate detection
 - `get_exif_date_and_device()`: EXIF extraction with format-specific handlers
 - `create_directory_structure()`: Creates year/month directory hierarchy
 - `rename_image()`: Generates standardized filename using ISO 8601-like format
@@ -115,8 +118,12 @@ The `config.py` module loads and processes this TOML configuration, creating der
 - `process_file_non_media()`: Handles files that don't match any media extension
 
 **`logger.py`**:
-- Multi-level logging to separate files in `./logs/` directory (info.log, warning.log, error.log)
-- Used throughout imagetools.py to track file operations
+- Multi-level logging to separate files in `./logs/` directory:
+  - `info.log`: General information about file operations
+  - `warning.log`: Warnings and non-critical issues
+  - `error.log`: Errors and failures
+  - `collision.log`: **Dedicated log for all collision detection events** (duplicates and name collisions)
+- Collision logger (`collision_logger`) is separate and logs detailed information about duplicate detection decisions
 
 **`write_date_to_exif.py`**:
 - Standalone utility for manually writing dates to EXIF data
@@ -144,9 +151,45 @@ The regex patterns in `extract_date_from_filename()` handle:
 - VLC screenshots: `YYYY-MM-DD-HHhMMmSSs`
 - Camera format: `YYYYMMDD_HHMMSS` (e.g., IMG_20190821_174044.jpg)
 
-### Collision Handling
-- Files with duplicate names get numeric suffixes (_1, _2, etc.)
-- Implemented in both `copy_file_with_new_exif()` and `process_file_non_media()`
+### Collision Handling (Hash-based Duplicate Detection)
+
+The system uses intelligent collision detection with hash-based duplicate detection to prevent data loss and avoid storing duplicate files:
+
+**Collision Resolution Flow:**
+1. When a destination file already exists, `resolve_destination_path()` is invoked
+2. File sizes are compared first (quick optimization)
+3. If sizes match, MD5 hashes are calculated for both files
+4. **If hashes match** → Duplicate detected, file is skipped (logged as INFO)
+5. **If hashes differ** → Genuine collision, numeric suffix added (_1, _2, etc.) and logged as WARNING
+
+**Key Benefits:**
+- **Idempotent**: Running the script multiple times won't create duplicates
+- **Prevents data loss**: Burst mode photos (same camera, same second) are preserved with suffixes
+- **Efficient**: Hashes calculated only on collision, not for every file
+- **Consistent**: All file types (media with/without EXIF, non-media) use the same logic
+
+**Implementation:**
+- `calculate_file_hash()`: Computes MD5 hash in 8KB chunks for memory efficiency
+- `are_files_identical()`: Size check followed by hash comparison
+- `resolve_destination_path()`: Centralized collision handling used by all file processing functions
+
+**Collision Log Format (`./logs/collision.log`):**
+
+All collision events are logged to a dedicated file for audit purposes:
+
+```
+# Duplicate detected (file skipped):
+2025-01-29 14:23:45 - INFO - DUPLICATE_SKIPPED | Source: /path/to/source.jpg | Existing: /path/to/dest.jpg | Decision: File skipped (identical hash)
+
+# Name collision (suffix added):
+2025-01-29 14:23:46 - WARNING - COLLISION_RESOLVED | Source: /path/to/source.jpg | Original destination: /path/to/dest.jpg | New destination: /path/to/dest_1.jpg | Decision: Added suffix _1 (different hash)
+```
+
+This dedicated log allows you to:
+- Review all duplicate files that were skipped
+- Identify burst photos or similar files that got suffixes
+- Audit the collision detection algorithm's decisions
+- Verify that no data was lost or incorrectly deduplicated
 
 ## Dependencies
 
