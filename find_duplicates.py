@@ -9,7 +9,7 @@ import sys
 import csv
 import argparse
 from duplicate_detection_db import DuplicateDetectionDB
-from logger import info_logger
+from logger import logger
 
 
 def format_size(size_bytes: int) -> str:
@@ -145,7 +145,7 @@ def export_to_csv(duplicates: list, output_file: str):
                 })
 
     print(f"\nDuplicates exported to: {output_file}")
-    info_logger.info(f"Duplicates exported to CSV: {output_file}")
+    logger.info(f"Duplicates exported to CSV: {output_file}")
 
 
 def main():

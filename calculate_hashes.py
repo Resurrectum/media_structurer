@@ -12,7 +12,7 @@ from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 from duplicate_detection_db import DuplicateDetectionDB
 from hash_calculator import process_media_file
-from logger import info_logger, error_logger
+from logger import logger
 import config
 
 
@@ -41,11 +41,11 @@ def scan_media_directories(directories: list, db: DuplicateDetectionDB) -> list:
     '''
     files_to_process = []
 
-    info_logger.info(f"Scanning directories: {directories}")
+    logger.info(f"Scanning directories: {directories}")
 
     for directory in directories:
         if not os.path.exists(directory):
-            error_logger.error(f"Directory does not exist: {directory}")
+            logger.error(f"Directory does not exist: {directory}")
             continue
 
         for root, dirs, files in os.walk(directory):
@@ -67,7 +67,7 @@ def scan_media_directories(directories: list, db: DuplicateDetectionDB) -> list:
                     files_to_process.append((file_path, media_type))
 
                 except Exception as e:
-                    error_logger.error(f"Error checking file {file_path}: {e}")
+                    logger.error(f"Error checking file {file_path}: {e}")
 
     return files_to_process
 
@@ -104,13 +104,13 @@ def main():
 
     # Initialize database
     db = DuplicateDetectionDB(args.db)
-    info_logger.info("Database initialized")
+    logger.info("Database initialized")
 
     # Handle rebuild flag
     if args.rebuild:
         print("\n[REBUILD MODE] Clearing database...")
         db.rebuild_database()
-        info_logger.info("Database cleared for rebuild")
+        logger.info("Database cleared for rebuild")
         print("Database cleared. All files will be reprocessed.")
 
     # Get current stats
@@ -126,7 +126,7 @@ def main():
         print("\n[CLEANUP MODE] Checking for deleted files...")
         removed_count = db.cleanup_deleted_files()
         print(f"Removed {removed_count} stale entries from database")
-        info_logger.info(f"Cleanup complete. Removed {removed_count} stale entries")
+        logger.info(f"Cleanup complete. Removed {removed_count} stale entries")
 
         if removed_count > 0:
             # Show updated stats after cleanup
@@ -189,7 +189,7 @@ def main():
                     )
                     successful += 1
                 except Exception as e:
-                    error_logger.error(f"Failed to store result: {e}")
+                    logger.error(f"Failed to store result: {e}")
                     failed += 1
             else:
                 failed += 1
@@ -213,7 +213,7 @@ def main():
 
     print("=" * 60)
 
-    info_logger.info(f"Hash calculation complete. Processed: {successful}, Failed: {failed}")
+    logger.info(f"Hash calculation complete. Processed: {successful}, Failed: {failed}")
     db.close()
 
 

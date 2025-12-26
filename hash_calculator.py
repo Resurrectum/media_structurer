@@ -10,7 +10,7 @@ import tempfile
 from typing import Optional, Tuple
 from PIL import Image
 import imagehash
-from logger import info_logger, error_logger
+from logger import logger
 
 
 def calculate_image_phash(file_path: str) -> Optional[Tuple[str, int, int]]:
@@ -30,7 +30,7 @@ def calculate_image_phash(file_path: str) -> Optional[Tuple[str, int, int]]:
             return (str(phash), width, height)
 
     except Exception as e:
-        error_logger.error(f"Failed to calculate hash for {file_path}: {e}")
+        logger.error(f"Failed to calculate hash for {file_path}: {e}")
         return None
 
 
@@ -63,7 +63,7 @@ def extract_video_frame(video_path: str, output_path: str, timestamp: str = "00:
         return result.returncode == 0
 
     except Exception as e:
-        error_logger.error(f"Failed to extract frame from {video_path}: {e}")
+        logger.error(f"Failed to extract frame from {video_path}: {e}")
         return False
 
 
@@ -100,7 +100,7 @@ def get_video_info(video_path: str) -> Optional[Tuple[int, int, float]]:
                 return (width, height, duration)
 
     except Exception as e:
-        error_logger.error(f"Failed to get video info for {video_path}: {e}")
+        logger.error(f"Failed to get video info for {video_path}: {e}")
 
     return None
 
@@ -139,7 +139,7 @@ def calculate_video_phash(file_path: str) -> Optional[Tuple[str, int, int, float
         return (str(phash), width, height, duration)
 
     except Exception as e:
-        error_logger.error(f"Failed to calculate video hash for {file_path}: {e}")
+        logger.error(f"Failed to calculate video hash for {file_path}: {e}")
         return None
 
     finally:
@@ -203,7 +203,7 @@ def process_media_file(args: Tuple[str, str]) -> Optional[dict]:
             }
 
     except Exception as e:
-        error_logger.error(f"Failed to process {file_path}: {e}")
+        logger.error(f"Failed to process {file_path}: {e}")
         return None
 
     return None
