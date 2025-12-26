@@ -8,3 +8,33 @@ Easy python script that takes all your photos and orders them in a structured wa
 - the script is configured via a `toml` configuration file
 - a `careful` execution mode is possible. In that case the photos are not moved but copied (duplicated) in a target folder
 - all steps are logged in a log-file
+
+## Running the Application
+
+### Local Execution
+
+```bash
+python main.py
+```
+
+### Docker Deployment
+
+For running on a server (e.g., with Syncthing to eliminate network traffic):
+
+```bash
+# See DOCKER_DEPLOYMENT.md for complete instructions
+./deploy.sh                          # Deploy to remote server
+ssh server "cd ~/repos/media_structurer && docker-compose up"
+```
+
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete Docker deployment guide.
+
+## Duplicate Detection
+
+The project includes perceptual hash-based duplicate detection to identify visually identical images and videos:
+- Fast parallel processing using all CPU cores
+- Finds duplicates regardless of EXIF differences, file names, or minor edits
+- Automatic cleanup tool with intelligent strategies (keep largest, remove collision suffixes, keep oldest)
+- Excludes RAW+JPEG pairs from duplicate reports (intentional format conversions)
+
+See `DUPLICATE_DETECTION.md` for complete documentation.

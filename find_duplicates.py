@@ -10,6 +10,7 @@ import csv
 import argparse
 from duplicate_detection_db import DuplicateDetectionDB
 from logger import logger
+import config
 
 
 def format_size(size_bytes: int) -> str:
@@ -58,20 +59,49 @@ def format_duration(duration: float) -> str:
         return f"{seconds}s"
 
 
+def is_mixed_format_group(files: list) -> bool:
+    '''
+    @brief Check if duplicate group contains both RAW and JPEG formats
+    @param files List of file info dictionaries
+    @return True if group has mixed RAW/JPEG formats (false positive), False otherwise
+    '''
+    has_raw = False
+    has_jpeg = False
+
+    for file_info in files:
+        ext = os.path.splitext(file_info['file_path'])[1].lower()
+
+        if ext in config.raw_extensions:
+            has_raw = True
+        elif ext in config.image_extensions:
+            has_jpeg = True
+
+    # If group has both RAW and JPEG, it's a false positive (format conversion pair)
+    return has_raw and has_jpeg
+
+
 def display_duplicates(duplicates: list, verbose: bool = False):
     '''
     @brief Display duplicate groups in terminal
     @param duplicates List of duplicate groups from database
     @param verbose Show full file paths if True
     '''
+    # Filter out RAW+JPEG pairs (false positives)
+    filtered_duplicates = [
+        (phash, files) for phash, files in duplicates
+        if not is_mixed_format_group(files)
+    ]
+
     print("=" * 80)
     print("DUPLICATE FILES REPORT")
+    print("=" * 80)
+    print(f"(Filtered out {len(duplicates) - len(filtered_duplicates)} RAW+JPEG pairs)")
     print("=" * 80)
 
     total_duplicate_files = 0
     total_wasted_space = 0
 
-    for idx, (phash, files) in enumerate(duplicates, 1):
+    for idx, (phash, files) in enumerate(filtered_duplicates, 1):
         print(f"\n{'=' * 80}")
         print(f"Duplicate Group #{idx} ({len(files)} files)")
         print(f"{'=' * 80}")
@@ -110,7 +140,7 @@ def display_duplicates(duplicates: list, verbose: bool = False):
     print("=" * 80)
     print("SUMMARY")
     print("=" * 80)
-    print(f"Total duplicate groups: {len(duplicates)}")
+    print(f"Total duplicate groups: {len(filtered_duplicates)}")
     print(f"Total duplicate files: {total_duplicate_files}")
     print(f"Total wasted space: {format_size(total_wasted_space)}")
     print(f"  (If you delete all but the largest file in each group)")
@@ -123,6 +153,12 @@ def export_to_csv(duplicates: list, output_file: str):
     @param duplicates List of duplicate groups from database
     @param output_file Path to output CSV file
     '''
+    # Filter out RAW+JPEG pairs (false positives)
+    filtered_duplicates = [
+        (phash, files) for phash, files in duplicates
+        if not is_mixed_format_group(files)
+    ]
+
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = [
             'group_id', 'file_path', 'file_size', 'size_formatted',
@@ -131,7 +167,7 @@ def export_to_csv(duplicates: list, output_file: str):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-        for group_id, (phash, files) in enumerate(duplicates, 1):
+        for group_id, (phash, files) in enumerate(filtered_duplicates, 1):
             for file_info in files:
                 writer.writerow({
                     'group_id': group_id,
@@ -145,7 +181,8 @@ def export_to_csv(duplicates: list, output_file: str):
                 })
 
     print(f"\nDuplicates exported to: {output_file}")
-    logger.info(f"Duplicates exported to CSV: {output_file}")
+    print(f"(Filtered out {len(duplicates) - len(filtered_duplicates)} RAW+JPEG pairs)")
+    logger.info(f"Duplicates exported to CSV: {output_file} (filtered {len(duplicates) - len(filtered_duplicates)} RAW+JPEG pairs)")
 
 
 def main():

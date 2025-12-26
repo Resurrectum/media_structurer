@@ -82,7 +82,47 @@ The report will show:
 - Total wasted space
 - Suggestions for which files to keep
 
-### 3. Database Maintenance
+**Note:** The duplicate finder automatically filters out RAW+JPEG pairs (e.g., .dng and .jpg of the same photo). These are intentional format conversions and are not reported as duplicates.
+
+### 3. Delete Duplicate Images
+
+Automatically clean up duplicate images using an intelligent cleanup strategy:
+
+```bash
+# Dry-run mode - see what would be deleted
+python delete_smaller_duplicates.py
+
+# Actually delete files
+python delete_smaller_duplicates.py --execute
+```
+
+**Cleanup Strategy:**
+1. **Different sizes**: Keeps largest file, deletes smaller versions
+2. **Same size with collision suffixes**: Deletes files with `_1`, `_2`, `_1_2_3` suffixes, keeps original without suffix
+3. **Same size without clear preference**: Keeps file with oldest modification timestamp
+
+**What it does:**
+- Automatically skips RAW+JPEG pairs (not deleted)
+- Only processes image files (skips videos)
+- Shows detailed reason for each kept file ("largest size", "no suffix + oldest", "oldest timestamp")
+- Logs all deletions to `./logs/info.log`
+
+**Example output:**
+```
+Duplicate Group #15
+  Keeping (no suffix + oldest): /home/user/Pictures/2023-08-21T01_41_28.jpg
+  Size: 590.7 KB
+  Deleted: /home/user/Pictures/2023-08-21T01_41_28_1.jpg
+           Size: 590.7 KB
+```
+
+**After deletion:**
+```bash
+# Update database to remove deleted file entries
+python calculate_hashes.py --cleanup
+```
+
+### 4. Database Maintenance
 
 The database tracks files using their paths and modification times. Here are the maintenance options:
 
@@ -136,7 +176,7 @@ This will:
 2. Scan for new/modified files
 3. Process them and update the database
 
-### 4. Integration with Media Structurer
+### 5. Integration with Media Structurer
 
 The duplicate detection is designed to integrate with the main media structurer workflow:
 

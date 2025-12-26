@@ -60,6 +60,8 @@ When adding or modifying code in this repository, strictly adhere to these princ
 
 ## Running the Application
 
+### Local Development
+
 **Main organizer script:**
 ```bash
 python main.py
@@ -75,6 +77,32 @@ streamlit run exif_dashboard_streamlit.py
 python write_date_to_exif.py
 ```
 
+### Docker Deployment
+
+**Deploy to remote server (e.g., tricc):**
+```bash
+./deploy.sh                          # Syncs code via rsync and builds image on server
+```
+
+**Run on server:**
+```bash
+ssh rafael@tricc
+cd ~/repos/media_structurer
+docker-compose up                    # Run once
+docker-compose up -d                 # Run in background
+```
+
+**Update deployment:**
+```bash
+./deploy.sh                          # Re-sync and rebuild
+./deploy-and-restart.sh              # Re-sync, rebuild, and auto-restart container
+```
+
+See `DOCKER_DEPLOYMENT.md` for complete deployment guide including:
+- Configuration of volume paths for Syncthing integration
+- Automation options (cron, systemd, folder watch)
+- Troubleshooting
+
 **Duplicate detection (calculate hashes):**
 ```bash
 python calculate_hashes.py           # Initial run or incremental update
@@ -87,6 +115,12 @@ python calculate_hashes.py --rebuild # Clear DB and recalculate all hashes
 python find_duplicates.py           # Display duplicate groups
 python find_duplicates.py -v        # Show full file paths
 python find_duplicates.py -o out.csv # Export to CSV
+```
+
+**Duplicate cleanup (delete duplicates):**
+```bash
+python delete_smaller_duplicates.py              # Dry-run mode
+python delete_smaller_duplicates.py --execute    # Actually delete files
 ```
 
 See `DUPLICATE_DETECTION.md` for complete documentation.
@@ -149,7 +183,7 @@ The `config.py` module loads and processes this TOML configuration, creating der
 - Web UI for batch EXIF date updates
 - Displays images and allows setting date/time via sidebar controls
 
-**Duplicate Detection Module** (`duplicate_detection_db.py`, `hash_calculator.py`, `calculate_hashes.py`, `find_duplicates.py`):
+**Duplicate Detection Module** (`duplicate_detection_db.py`, `hash_calculator.py`, `calculate_hashes.py`, `find_duplicates.py`, `delete_smaller_duplicates.py`):
 - **`duplicate_detection_db.py`**: SQLite database manager for storing perceptual hashes
   - Schema includes file path, hash, size, dimensions, modification time
   - Indexed on perceptual_hash for fast duplicate lookups
@@ -164,7 +198,14 @@ The `config.py` module loads and processes this TOML configuration, creating der
   - Flags: `--cleanup` (remove stale entries), `--rebuild` (clear and recalculate all)
 - **`find_duplicates.py`**: Query and report duplicates from database
   - Groups files by perceptual hash, calculates wasted space
+  - Automatically filters out RAW+JPEG pairs (intentional format conversions)
   - Export to CSV, verbose mode for full paths
+- **`delete_smaller_duplicates.py`**: Intelligent duplicate cleanup tool
+  - Strategy 1: Different sizes → keep largest
+  - Strategy 2: Same size with collision suffixes (_1, _2, etc.) → delete suffixed files, keep original
+  - Strategy 3: Same size without clear preference → keep oldest timestamp
+  - Automatically skips RAW+JPEG pairs and videos (only processes images)
+  - Dry-run mode by default, requires `--execute` flag to delete files
 
 **How it differs from collision detection:**
 - Collision detection (in `imagetools.py`) uses MD5/SHA256 hashes of entire file content for exact binary matches during the organizing process
@@ -244,3 +285,21 @@ Duplicate detection libraries:
 - `imagehash`: Perceptual hashing for images
 - `tqdm`: Progress bars for long-running operations
 - `ffmpeg` / `ffprobe`: Video frame extraction and metadata (system dependency, not Python package)
+
+All dependencies are specified in `pyproject.toml` for modern Python package management.
+
+## Deployment
+
+The project includes Docker deployment support for running on servers:
+
+**Files:**
+- `Dockerfile`: Container image with all dependencies
+- `docker-compose.yml`: Container orchestration with volume mappings
+- `config.tricc.toml`: Configuration template for server deployment
+- `deploy.sh`: Automated rsync-based deployment script
+- `deploy-and-restart.sh`: Deploy and auto-restart container
+- `.dockerignore`: Excludes unnecessary files from image
+
+**Use case:** Run Media Structurer on a Syncthing master server to eliminate unnecessary network traffic (files sync once, get organized locally, no sync-back needed).
+
+See `DOCKER_DEPLOYMENT.md` for complete deployment documentation.
